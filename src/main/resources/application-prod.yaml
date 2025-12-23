@@ -1,0 +1,15 @@
+logging:
+  level:
+    root: WARN
+    com.achernov.cryptoarb: INFO
+
+spring:
+  # --- DATABASE SETTINGS ---
+  datasource:
+    hikari:
+      leak-detection-threshold: ${DB_LEAK_THRESHOLD:30000}
+
+  # --- JPA / HIBERNATE SETTINGS ---
+  jpa:
+    hibernate:
+      ddl-auto: validate

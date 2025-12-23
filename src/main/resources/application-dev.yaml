@@ -1,0 +1,19 @@
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.achernov.cryptoarb: DEBUG
+
+spring:
+  # --- DATABASE SETTINGS ---
+  datasource:
+    hikari:
+      leak-detection-threshold: ${DB_LEAK_THRESHOLD:2000}
+
+  # --- JPA / HIBERNATE SETTINGS ---
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: validate
