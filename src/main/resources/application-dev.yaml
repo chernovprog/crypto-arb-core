@@ -5,6 +5,7 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     com.achernov.cryptoarb: DEBUG
+    org.flywaydb: DEBUG
 
 spring:
   # --- DATABASE SETTINGS ---
