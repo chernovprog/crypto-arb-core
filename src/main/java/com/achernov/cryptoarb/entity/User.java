@@ -1,10 +1,15 @@
-package com.achernov.cryptoarb.model;
+package com.achernov.cryptoarb.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -15,7 +20,7 @@ import java.time.LocalDateTime;
 @Builder
 @ToString
 @EqualsAndHashCode(of = "id")
-public class User {
+public class User implements UserDetails {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -57,10 +62,12 @@ public class User {
   @Column(length = 20)
   private String addressZipCode;
 
+  @Builder.Default
   @Enumerated(EnumType.STRING)
   @Column(length = 50, nullable = false)
   private Role role = Role.USER;
 
+  @Builder.Default
   @Column(nullable = false)
   private boolean enabled = true;
 
@@ -72,6 +79,16 @@ public class User {
 
   @Column(nullable = false, insertable = false)
   private LocalDateTime updatedAt;
+
+  @Override
+  public Collection<? extends GrantedAuthority> getAuthorities() {
+    return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+  }
+
+  @Override
+  public boolean isEnabled() {
+    return enabled;
+  }
 
   public enum Role {
     USER,
