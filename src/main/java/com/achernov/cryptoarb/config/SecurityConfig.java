@@ -50,14 +50,17 @@ public class SecurityConfig {
                     // Static resources and frontend entry points
                     .requestMatchers(GET, "/", "/index.html", "/assets/**", "/favicon.ico").permitAll()
 
-                    // Public APIs
-                    .requestMatchers(POST, "/api/auth/**").permitAll()
-
                     // Private APIs
                     .requestMatchers(GET, "/api/auth/me").authenticated()
 
                     // Public routes
                     .requestMatchers(GET, "/signup", "/login", "/logout").permitAll()
+
+                    // Public APIs
+                    .requestMatchers(POST, "/api/auth/**").permitAll()
+
+                    // WebSockets
+                    .requestMatchers("/ws/**").authenticated()
 
                     // Secure all other endpoints
                     .anyRequest().authenticated()

@@ -46,6 +46,34 @@ jwt:
     cookie-name: refreshToken
     cleanup-cron: 0 0 3 * * ?
 
+app:
+  integrations:
+    providers:
+      binance:
+        exchange-name: Binance
+        spot-market-url: wss://stream.binance.com:9443/ws
+        topic-destination: /topic/binance/price
+        ping-interval: 3m
+        tickers:
+          - BTCUSDT
+          - ETHUSDT
+      bybit:
+        exchange-name: Bybit
+        spot-market-url: wss://stream.bybit.com/v5/public/spot
+        topic-destination: /topic/bybit/price
+        ping-interval: 20s
+        tickers:
+          - BTCUSDT
+          - ETHUSDT
+      whitebit:
+        exchange-name: WhiteBIT
+        spot-market-url: wss://api.whitebit.com/ws
+        topic-destination: /topic/whitebit/price
+        ping-interval: 50s
+        tickers:
+          - BTC_USDT
+          - ETH_USDT
+
 logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr([%-10.10X{exchange:-system}]){yellow} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}"
