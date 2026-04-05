@@ -1,13 +1,13 @@
 package com.achernov.cryptoarb.controller;
 
 import com.achernov.cryptoarb.dto.AuthRequest;
+import com.achernov.cryptoarb.dto.AuthResponse;
 import com.achernov.cryptoarb.entity.RefreshToken;
 import com.achernov.cryptoarb.entity.User;
 import com.achernov.cryptoarb.exception.InvalidRefreshTokenException;
 import com.achernov.cryptoarb.repository.UserRepository;
 import com.achernov.cryptoarb.security.JwtTokenProvider;
 import com.achernov.cryptoarb.service.RefreshTokenService;
-import com.achernov.cryptoarb.service.UserDetailsServiceImpl;
 import com.achernov.cryptoarb.service.infrastructure.CookieService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,8 +19,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -36,7 +38,7 @@ public class AuthController {
   private final AuthenticationManager authenticationManager;
   private final JwtTokenProvider jwtTokenProvider;
   private final RefreshTokenService refreshTokenService;
-  private final UserDetailsServiceImpl userDetailsService;
+  private final UserDetailsService userDetailsService;
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final CookieService cookieService;
@@ -55,7 +57,7 @@ public class AuthController {
 
 
   public AuthController(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider,
-                        RefreshTokenService refreshTokenService, UserDetailsServiceImpl userDetailsService,
+                        RefreshTokenService refreshTokenService, UserDetailsService userDetailsService,
                         UserRepository userRepository, PasswordEncoder passwordEncoder,
                         CookieService cookieService) {
     this.authenticationManager = authenticationManager;
@@ -69,20 +71,20 @@ public class AuthController {
 
   @PostMapping("/signup")
   public ResponseEntity<?> signup(@RequestBody AuthRequest authRequest) {
-    if (!StringUtils.hasText(authRequest.username()) || !StringUtils.hasText(authRequest.password())) {
+    if (!StringUtils.hasText(authRequest.email()) || !StringUtils.hasText(authRequest.password())) {
       return ResponseEntity.badRequest()
               .body(Map.of("error", "Username and password are required"));
     }
 
-    if (userRepository.findByUsername(authRequest.username()).isPresent()) {
+    if (userRepository.findByUsername(authRequest.email()).isPresent()) {
       return ResponseEntity.status(HttpStatus.CONFLICT)
               .body(Map.of("error", "Registration failed. Please check your data and try again"));
     }
 
     User user = new User();
-    user.setUsername(authRequest.username().trim());
+    user.setUsername(authRequest.email().trim());
     user.setPassword(passwordEncoder.encode(authRequest.password().trim()));
-    user.setEmail(authRequest.username().trim());
+    user.setEmail(authRequest.email().trim());
 
     userRepository.save(user);
 
@@ -108,12 +110,12 @@ public class AuthController {
   @PostMapping("/login")
   public ResponseEntity<?> login(@RequestBody AuthRequest authRequest) {
     Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(authRequest.username(), authRequest.password())
+            new UsernamePasswordAuthenticationToken(authRequest.email(), authRequest.password())
     );
 
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-    String jwt = jwtTokenProvider.generateToken(authRequest.username());
+    String jwt = jwtTokenProvider.generateToken(authRequest.email());
 
     UserDetails userDetails = (UserDetails) authentication.getPrincipal();
     User user = (User) userDetails;
@@ -181,7 +183,7 @@ public class AuthController {
   }
 
   @GetMapping("/me")
-  public ResponseEntity<Void> checkAuth() {
-    return ResponseEntity.noContent().build();
+  public ResponseEntity<AuthResponse> checkAuth(@AuthenticationPrincipal User user) {
+    return ResponseEntity.ok(new AuthResponse(user.getId(), user.getFirstName(), user.getEmail()));
   }
 }
