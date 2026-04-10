@@ -1,5 +1,6 @@
 package com.achernov.cryptoarb.controller;
 
+import com.achernov.cryptoarb.config.properties.JwtProperties;
 import com.achernov.cryptoarb.dto.AuthRequest;
 import com.achernov.cryptoarb.dto.AuthResponse;
 import com.achernov.cryptoarb.entity.RefreshToken;
@@ -11,7 +12,6 @@ import com.achernov.cryptoarb.service.RefreshTokenService;
 import com.achernov.cryptoarb.service.infrastructure.CookieService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -42,24 +42,12 @@ public class AuthController {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final CookieService cookieService;
-
-  @Value("${jwt.access.expiration}")
-  private long jwtExpirationMs;
-
-  @Value("${jwt.refresh.expiration}")
-  private long refreshExpirationMs;
-
-  @Value("${jwt.access.cookie-name}")
-  private String accessCookieName;
-
-  @Value("${jwt.refresh.cookie-name}")
-  private String refreshCookieName;
-
+  private final JwtProperties properties;
 
   public AuthController(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider,
                         RefreshTokenService refreshTokenService, UserDetailsService userDetailsService,
                         UserRepository userRepository, PasswordEncoder passwordEncoder,
-                        CookieService cookieService) {
+                        CookieService cookieService, JwtProperties properties) {
     this.authenticationManager = authenticationManager;
     this.jwtTokenProvider = jwtTokenProvider;
     this.refreshTokenService = refreshTokenService;
@@ -67,6 +55,7 @@ public class AuthController {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.cookieService = cookieService;
+    this.properties = properties;
   }
 
   @PostMapping("/signup")
@@ -97,9 +86,17 @@ public class AuthController {
     String jwt = jwtTokenProvider.generateToken(authentication.getName());
     RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
-    ResponseCookie accessCookie = cookieService.createResponseCookie(accessCookieName, jwt, jwtExpirationMs);
+    ResponseCookie accessCookie = cookieService.createResponseCookie(
+            properties.access().cookieName(),
+            jwt,
+            properties.access().ttl()
+    );
+
     ResponseCookie refreshCookie = cookieService.createResponseCookie(
-            refreshCookieName, refreshToken.getToken(), refreshExpirationMs);
+            properties.refresh().cookieName(),
+            refreshToken.getToken(),
+            properties.refresh().ttl()
+    );
 
     return ResponseEntity.status(HttpStatus.CREATED)
             .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
@@ -122,9 +119,17 @@ public class AuthController {
 
     RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
-    ResponseCookie accessCookie = cookieService.createResponseCookie(accessCookieName, jwt, jwtExpirationMs);
+    ResponseCookie accessCookie = cookieService.createResponseCookie(
+            properties.access().cookieName(),
+            jwt,
+            properties.access().ttl()
+    );
+
     ResponseCookie refreshCookie = cookieService.createResponseCookie(
-            refreshCookieName, refreshToken.getToken(), refreshExpirationMs);
+            properties.refresh().cookieName(),
+            refreshToken.getToken(),
+            properties.refresh().ttl()
+    );
 
     return ResponseEntity.ok()
             .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
@@ -134,7 +139,7 @@ public class AuthController {
 
   @PostMapping("/refresh")
   public ResponseEntity<?> refreshToken(HttpServletRequest request) {
-    Cookie refreshTokenCookie = WebUtils.getCookie(request, refreshCookieName);
+    Cookie refreshTokenCookie = WebUtils.getCookie(request, properties.refresh().cookieName());
 
     if (refreshTokenCookie == null) {
       throw new InvalidRefreshTokenException("Authentication required");
@@ -150,9 +155,17 @@ public class AuthController {
               String newJwt = jwtTokenProvider.generateToken(user.getUsername());
               RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
 
-              ResponseCookie accessCookie = cookieService.createResponseCookie(accessCookieName, newJwt, jwtExpirationMs);
+              ResponseCookie accessCookie = cookieService.createResponseCookie(
+                      properties.access().cookieName(),
+                      newJwt,
+                      properties.access().ttl()
+              );
+
               ResponseCookie refreshCookie = cookieService.createResponseCookie(
-                      refreshCookieName, newRefreshToken.getToken(), refreshExpirationMs);
+                      properties.refresh().cookieName(),
+                      newRefreshToken.getToken(),
+                      properties.refresh().ttl()
+              );
 
               return ResponseEntity.ok()
                       .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
@@ -164,15 +177,18 @@ public class AuthController {
 
   @PostMapping("/logout")
   public ResponseEntity<?> logout(HttpServletRequest request) {
-    Cookie refreshTokenCookie = WebUtils.getCookie(request, refreshCookieName);
+    Cookie refreshTokenCookie = WebUtils.getCookie(request, properties.refresh().cookieName());
 
     Optional.ofNullable(refreshTokenCookie)
             .map(Cookie::getValue)
             .flatMap(refreshTokenService::findByToken)
             .ifPresent(refreshTokenService::deleteToken);
 
-    ResponseCookie accessCookie = cookieService.deleteCookie(accessCookieName);
-    ResponseCookie refreshCookie = cookieService.deleteCookie(refreshCookieName);
+    ResponseCookie accessCookie = cookieService
+            .deleteCookie(properties.access().cookieName());
+
+    ResponseCookie refreshCookie = cookieService
+            .deleteCookie(properties.refresh().cookieName());
 
     SecurityContextHolder.clearContext();
 
@@ -184,6 +200,12 @@ public class AuthController {
 
   @GetMapping("/me")
   public ResponseEntity<AuthResponse> checkAuth(@AuthenticationPrincipal User user) {
-    return ResponseEntity.ok(new AuthResponse(user.getId(), user.getFirstName(), user.getEmail()));
+    AuthResponse response = new AuthResponse(
+            user.getId(),
+            user.getFirstName(),
+            user.getEmail()
+    );
+
+    return ResponseEntity.ok(response);
   }
 }

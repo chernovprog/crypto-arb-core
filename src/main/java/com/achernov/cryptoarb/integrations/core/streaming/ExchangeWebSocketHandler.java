@@ -1,6 +1,6 @@
 package com.achernov.cryptoarb.integrations.core.streaming;
 
-import com.achernov.cryptoarb.config.properties.ExchangeProperties;
+import com.achernov.cryptoarb.integrations.properties.ExchangeConfig;
 import com.achernov.cryptoarb.dto.TickerDto;
 import com.achernov.cryptoarb.integrations.core.strategy.MessageParser;
 import com.achernov.cryptoarb.integrations.core.strategy.PingService;
@@ -24,15 +24,15 @@ public class ExchangeWebSocketHandler extends TextWebSocketHandler {
   private final SimpMessagingTemplate messagingTemplate;
   private final SubscriptionService subscriptionService;
   private final PingService pingService;
-  private final ExchangeProperties properties;
+  private final ExchangeConfig config;
   private final Runnable onCloseCallback;
 
   @Override
   public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-    try (MDC.MDCCloseable ignored = MDC.putCloseable("exchange", properties.exchangeName())) {
+    try (MDC.MDCCloseable ignored = MDC.putCloseable("exchange", config.exchangeName())) {
       log.info("Connected to WebSocket. Session ID: {}", session.getId());
 
-      subscriptionService.subscribe(session, properties.tickers());
+      subscriptionService.subscribe(session, config.tickers());
 
       pingService.start(session);
     }
@@ -40,7 +40,7 @@ public class ExchangeWebSocketHandler extends TextWebSocketHandler {
 
   @Override
   protected void handleTextMessage(WebSocketSession session, TextMessage message) {
-    try (MDC.MDCCloseable ignored = MDC.putCloseable("exchange", properties.exchangeName())) {
+    try (MDC.MDCCloseable ignored = MDC.putCloseable("exchange", config.exchangeName())) {
       String payload = message.getPayload();
       log.debug("Received message: {}", payload);
 
@@ -48,7 +48,7 @@ public class ExchangeWebSocketHandler extends TextWebSocketHandler {
       if (dto != null && dto.isValid()) {
         String tickerJson = objectMapper.writeValueAsString(dto);
 
-        messagingTemplate.convertAndSend(properties.topicDestination(), tickerJson);
+        messagingTemplate.convertAndSend(config.topicDestination(), tickerJson);
 
         log.debug("Ticker sent to topic: {}", tickerJson);
       }
@@ -65,7 +65,7 @@ public class ExchangeWebSocketHandler extends TextWebSocketHandler {
 
   @Override
   public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-    try (MDC.MDCCloseable ignored = MDC.putCloseable("exchange", properties.exchangeName())) {
+    try (MDC.MDCCloseable ignored = MDC.putCloseable("exchange", config.exchangeName())) {
       log.warn("Session closed. Status: {} - {}",
               status.getCode(), status.getReason());
       onCloseCallback.run();

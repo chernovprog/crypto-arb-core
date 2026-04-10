@@ -1,4 +1,4 @@
-package com.achernov.cryptoarb.config.properties;
+package com.achernov.cryptoarb.integrations.properties;
 
 import jakarta.validation.Valid;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -8,12 +8,13 @@ import java.util.Map;
 
 @Validated
 @ConfigurationProperties(prefix = "app.integrations")
-public record ExternalExchangeProperties(
-        @Valid Map<String, ExchangeProperties> providers
+public record IntegrationProperties(
+        boolean enabled,
+        @Valid Map<String, ExchangeConfig> providers
 ) {
 
-  public ExchangeProperties get(String exchangeName) {
-    ExchangeProperties properties = providers.get(exchangeName);
+  public ExchangeConfig get(String exchangeName) {
+    ExchangeConfig properties = providers.get(exchangeName);
     if (properties == null) {
       throw new RuntimeException("Provider not found: " + exchangeName);
     }

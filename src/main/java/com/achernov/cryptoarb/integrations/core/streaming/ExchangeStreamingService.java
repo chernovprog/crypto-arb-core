@@ -1,6 +1,6 @@
 package com.achernov.cryptoarb.integrations.core.streaming;
 
-import com.achernov.cryptoarb.config.properties.ExchangeProperties;
+import com.achernov.cryptoarb.integrations.properties.ExchangeConfig;
 import com.achernov.cryptoarb.integrations.core.strategy.MessageParser;
 import com.achernov.cryptoarb.integrations.core.strategy.PingService;
 import com.achernov.cryptoarb.integrations.core.strategy.ReconnectPolicy;
@@ -23,7 +23,7 @@ public class ExchangeStreamingService {
 
   private final SimpMessagingTemplate messagingTemplate;
   private final TaskScheduler scheduler;
-  private final ExchangeProperties properties;
+  private final ExchangeConfig config;
   private final MessageParser parser;
   private final ObjectMapper objectMapper;
   private final SubscriptionService subscriptionService;
@@ -51,17 +51,17 @@ public class ExchangeStreamingService {
             messagingTemplate,
             subscriptionService,
             pingService,
-            properties,
+            config,
             this::scheduleReconnect
     );
 
-    client.execute(handler, properties.spotMarketUrl());
+    client.execute(handler, config.spotMarketUrl());
   }
 
   private void scheduleReconnect() {
     if (shuttingDown || !reconnectPolicy.canRetry(attempts)) {
       log.warn("{}Max reconnect attempts reached ({}). Giving up.",
-              properties.exchangeName(), attempts);
+              config.exchangeName(), attempts);
       return;
     }
 
@@ -74,6 +74,6 @@ public class ExchangeStreamingService {
   @PreDestroy
   public void shutdown() {
     shuttingDown = true;
-    log.info("[{}] Shutdown", properties.exchangeName());
+    log.info("[{}] Shutdown", config.exchangeName());
   }
 }

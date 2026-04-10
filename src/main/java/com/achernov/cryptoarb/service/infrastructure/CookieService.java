@@ -1,6 +1,6 @@
 package com.achernov.cryptoarb.service.infrastructure;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.achernov.cryptoarb.config.properties.CookieProperties;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
 
@@ -9,15 +9,18 @@ import java.time.Duration;
 @Service
 public class CookieService {
 
-  @Value("${app.cookie.secure:true}")
-  private boolean cookieSecure;
+  private final CookieProperties properties;
 
-  public ResponseCookie createResponseCookie(String name, String value, long expirationMs) {
+  public CookieService(CookieProperties properties) {
+    this.properties = properties;
+  }
+
+  public ResponseCookie createResponseCookie(String name, String value, Duration maxAge) {
     return ResponseCookie.from(name, value)
-            .httpOnly(true)
-            .secure(cookieSecure)
-            .sameSite("Strict")
-            .maxAge(Duration.ofMillis(expirationMs))
+            .httpOnly(properties.httpOnly())
+            .secure(properties.secure())
+            .sameSite(properties.sameSite())
+            .maxAge(maxAge)
             .path("/")
             .build();
   }

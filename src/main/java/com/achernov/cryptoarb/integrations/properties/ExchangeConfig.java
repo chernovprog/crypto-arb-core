@@ -1,4 +1,4 @@
-package com.achernov.cryptoarb.config.properties;
+package com.achernov.cryptoarb.integrations.properties;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -6,14 +6,15 @@ import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import java.util.List;
 
-public record ExchangeProperties(
+public record ExchangeConfig(
+        boolean enabled,
         @NotEmpty String exchangeName,
         @NotEmpty String spotMarketUrl,
         @NotEmpty String topicDestination,
         @NotNull Duration pingInterval,
         @NotEmpty List<String> tickers
 ) {
-  public ExchangeProperties {
+  public ExchangeConfig {
     Duration minInterval = Duration.ofSeconds(20);
     if (pingInterval == null || pingInterval.compareTo(minInterval) < 0) {
       pingInterval = minInterval;

@@ -17,7 +17,7 @@ public class RefreshTokenCleanupService {
     this.refreshTokenRepository = refreshTokenRepository;
   }
 
-  @Scheduled(cron = "${jwt.refresh.cleanup-cron:0 0 3 * * ?}")
+  @Scheduled(cron = "${app.jwt.refresh.cleanup-cron:0 0 3 * * ?}")
   public void cleanupExpiredRefreshTokens() {
     int deleted = refreshTokenRepository.deleteExpiredTokens(Instant.now());
     log.info("Deleted {} expired refresh tokens", deleted);

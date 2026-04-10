@@ -1,12 +1,12 @@
 package com.achernov.cryptoarb.security;
 
+import com.achernov.cryptoarb.config.properties.JwtProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,16 +23,16 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-  @Value("${jwt.access.cookie-name}")
-  private String jwtCookieNameAccess;
-
   private final JwtTokenProvider jwtTokenProvider;
   private final UserDetailsService userDetailsService;
+  private final JwtProperties properties;
 
   public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider,
-                                 UserDetailsService userDetailsService) {
+                                 UserDetailsService userDetailsService,
+                                 JwtProperties properties) {
     this.jwtTokenProvider = jwtTokenProvider;
     this.userDetailsService = userDetailsService;
+    this.properties = properties;
   }
 
   @Override
@@ -40,7 +40,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                   HttpServletResponse response,
                                   FilterChain filterChain) throws ServletException, IOException {
 
-    Cookie jwtCookie = WebUtils.getCookie(request, jwtCookieNameAccess);
+    Cookie jwtCookie = WebUtils.getCookie(request, properties.access().cookieName());
 
     if (jwtCookie != null && StringUtils.hasText(jwtCookie.getValue())) {
       try {

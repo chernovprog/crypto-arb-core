@@ -1,17 +1,17 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   application:
     name: crypto-arb-core
+  profiles:
+    active: dev
   web:
     error:
       whitelabel:
         enabled: false
-  profiles:
-    active: dev
 
-  # --- DATABASE SETTINGS ---
+  # DATABASE
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -23,57 +23,59 @@ spring:
       connection-timeout: ${DB_CONNECTION_TIMEOUT:30000}
       max-lifetime: ${DB_MAX_LIFETIME:1800000}
 
-  # --- JPA / HIBERNATE SETTINGS ---
+  # ORM / Hibernate
   jpa:
     properties:
       hibernate:
         default_schema: public
+        hibernate:
+          ddl-auto: none
 
-  # --- FLYWAY SETTINGS ---
+  # FLYWAY
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
     baseline-version: 0
 
-jwt:
-  secret: ${JWT_SECRET}
-  access:
-    expiration: 900000
-    cookie-name: accessToken
-  refresh:
-    expiration: 604800000
-    cookie-name: refreshToken
-    cleanup-cron: 0 0 3 * * ?
-
-app:
-  integrations:
-    providers:
-      binance:
-        exchange-name: Binance
-        spot-market-url: wss://stream.binance.com:9443/ws
-        topic-destination: /topic/binance/price
-        ping-interval: 3m
-        tickers:
-          - BTCUSDT
-          - ETHUSDT
-      bybit:
-        exchange-name: Bybit
-        spot-market-url: wss://stream.bybit.com/v5/public/spot
-        topic-destination: /topic/bybit/price
-        ping-interval: 20s
-        tickers:
-          - BTCUSDT
-          - ETHUSDT
-      whitebit:
-        exchange-name: WhiteBIT
-        spot-market-url: wss://api.whitebit.com/ws
-        topic-destination: /topic/whitebit/price
-        ping-interval: 50s
-        tickers:
-          - BTC_USDT
-          - ETH_USDT
-
 logging:
   pattern:
     console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr([%-10.10X{exchange:-system}]){yellow} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}"
+
+app:
+  cookie:
+    http-only: true
+    same-site: "Strict"
+  jwt:
+    secret: ${JWT_SECRET}
+    access:
+      ttl: 15m
+      cookie-name: accessToken
+    refresh:
+      ttl: 7d
+      cookie-name: refreshToken
+      cleanup-cron: "0 0 3 * * ?"
+  integrations:
+    enabled: true
+    providers:
+      binance:
+        enabled: true
+        exchange-name: Binance
+        spot-market-url: wss://stream.binance.com:9443/ws
+        topic-destination: /topic/binance/prices
+        ping-interval: 3m
+        tickers: [BTCUSDT, ETHUSDT]
+      bybit:
+        enabled: true
+        exchange-name: Bybit
+        spot-market-url: wss://stream.bybit.com/v5/public/spot
+        topic-destination: /topic/bybit/prices
+        ping-interval: 20s
+        tickers: [BTCUSDT, ETHUSDT]
+      whitebit:
+        enabled: true
+        exchange-name: WhiteBIT
+        spot-market-url: wss://api.whitebit.com/ws
+        topic-destination: /topic/whitebit/prices
+        ping-interval: 50s
+        tickers: [BTC_USDT, ETH_USDT]
