@@ -6,11 +6,11 @@ import com.achernov.cryptoarb.integration.core.strategy.SubscriptionService;
 import com.achernov.cryptoarb.integration.core.strategy.impl.DefaultSubscriptionService;
 import com.achernov.cryptoarb.integration.core.strategy.impl.ExponentialBackoffReconnectPolicy;
 import com.achernov.cryptoarb.integration.core.streaming.ExchangeStreamingService;
-import com.achernov.cryptoarb.integration.properties.ExchangeConfig;
 import com.achernov.cryptoarb.integration.properties.IntegrationProperties;
+import com.achernov.cryptoarb.repository.CurrencyCache;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperties;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -20,10 +20,10 @@ import java.util.List;
 import java.util.Map;
 
 @Configuration
-@ConditionalOnProperties(
+@ConditionalOnBooleanProperties(
         value = {
-                @ConditionalOnProperty(prefix = "app.integrations", name = "enabled", havingValue = "true"),
-                @ConditionalOnProperty(prefix = "app.integrations.providers.binance", name = "enabled", havingValue = "true")
+                @ConditionalOnBooleanProperty(prefix = "app.integrations", name = "enabled"),
+                @ConditionalOnBooleanProperty(prefix = "app.integrations.providers.binance", name = "enabled")
         }
 )
 public class BinanceConfig {
@@ -31,20 +31,23 @@ public class BinanceConfig {
   private final SimpMessagingTemplate messagingTemplate;
   private final TaskScheduler taskScheduler;
   private final ObjectMapper objectMapper;
+  private final CurrencyCache currencyCache;
 
-  private final ExchangeConfig config;
+  private final IntegrationProperties properties;
 
   private final BinanceMessageParser parser;
 
   public BinanceConfig(SimpMessagingTemplate messagingTemplate,
                        TaskScheduler taskScheduler,
                        ObjectMapper objectMapper,
+                       CurrencyCache currencyCache,
                        IntegrationProperties properties,
                        BinanceMessageParser parser) {
     this.messagingTemplate = messagingTemplate;
     this.taskScheduler = taskScheduler;
     this.objectMapper = objectMapper;
-    this.config = properties.get("binance");
+    this.currencyCache = currencyCache;
+    this.properties = properties;
     this.parser = parser;
   }
 
@@ -53,9 +56,12 @@ public class BinanceConfig {
 
     SubscriptionService subscriptionService = new DefaultSubscriptionService(
             objectMapper,
-            tickers -> {
-              List<String> params = tickers.stream()
-                      .map(symbol -> symbol.toLowerCase() + "@miniTicker")
+            () -> {
+              List<String> params = properties.baseCurrency()
+                      .stream()
+                      .map(ticker -> ticker.toLowerCase()
+                              + properties.quoteCurrency().toLowerCase()
+                              + "@miniTicker")
                       .toList();
 
               return Map.of(
@@ -74,9 +80,10 @@ public class BinanceConfig {
     return new ExchangeStreamingService(
             messagingTemplate,
             taskScheduler,
-            config,
+            properties.get("binance"),
             parser,
             objectMapper,
+            currencyCache,
             subscriptionService,
             pingService,
             reconnectPolicy

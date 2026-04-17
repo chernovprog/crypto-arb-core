@@ -8,9 +8,10 @@ import com.achernov.cryptoarb.integration.core.strategy.impl.ExponentialBackoffR
 import com.achernov.cryptoarb.integration.core.streaming.ExchangeStreamingService;
 import com.achernov.cryptoarb.integration.properties.ExchangeConfig;
 import com.achernov.cryptoarb.integration.properties.IntegrationProperties;
+import com.achernov.cryptoarb.repository.CurrencyCache;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperties;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -20,10 +21,10 @@ import java.util.List;
 import java.util.Map;
 
 @Configuration
-@ConditionalOnProperties(
+@ConditionalOnBooleanProperties(
         value = {
-                @ConditionalOnProperty(prefix = "app.integrations", name = "enabled", havingValue = "true"),
-                @ConditionalOnProperty(prefix = "app.integrations.providers.bybit", name = "enabled", havingValue = "true")
+                @ConditionalOnBooleanProperty(prefix = "app.integrations", name = "enabled"),
+                @ConditionalOnBooleanProperty(prefix = "app.integrations.providers.bybit", name = "enabled")
         }
 )
 public class BybitConfig {
@@ -31,20 +32,23 @@ public class BybitConfig {
   private final SimpMessagingTemplate messagingTemplate;
   private final TaskScheduler taskScheduler;
   private final ObjectMapper objectMapper;
+  private final CurrencyCache currencyCache;
 
-  private final ExchangeConfig config;
+  private final IntegrationProperties properties;
 
   private final BybitMessageParser parser;
 
   public BybitConfig(SimpMessagingTemplate messagingTemplate,
                      TaskScheduler taskScheduler,
                      ObjectMapper objectMapper,
+                     CurrencyCache currencyCache,
                      IntegrationProperties properties,
                      BybitMessageParser parser) {
     this.messagingTemplate = messagingTemplate;
     this.taskScheduler = taskScheduler;
     this.objectMapper = objectMapper;
-    this.config = properties.get("bybit");
+    this.currencyCache = currencyCache;
+    this.properties = properties;
     this.parser = parser;
   }
 
@@ -53,9 +57,12 @@ public class BybitConfig {
 
     SubscriptionService subscriptionService = new DefaultSubscriptionService(
             objectMapper,
-            tickers -> {
-              List<String> topics = tickers.stream()
-                      .map(symbol -> "tickers." + symbol.toUpperCase())
+            () -> {
+              List<String> topics = properties.baseCurrency()
+                      .stream()
+                      .map(ticker -> "tickers."
+                              + ticker.toUpperCase()
+                              + properties.quoteCurrency().toUpperCase())
                       .toList();
 
               return Map.of("op", "subscribe", "args", topics);
@@ -71,9 +78,10 @@ public class BybitConfig {
     return new ExchangeStreamingService(
             messagingTemplate,
             taskScheduler,
-            config,
+            properties.get("bybit"),
             parser,
             objectMapper,
+            currencyCache,
             subscriptionService,
             pingService,
             reconnectPolicy

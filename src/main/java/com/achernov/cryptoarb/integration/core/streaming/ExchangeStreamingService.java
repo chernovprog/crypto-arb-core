@@ -5,6 +5,7 @@ import com.achernov.cryptoarb.integration.core.strategy.MessageParser;
 import com.achernov.cryptoarb.integration.core.strategy.PingService;
 import com.achernov.cryptoarb.integration.core.strategy.ReconnectPolicy;
 import com.achernov.cryptoarb.integration.core.strategy.SubscriptionService;
+import com.achernov.cryptoarb.repository.CurrencyCache;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -26,6 +27,7 @@ public class ExchangeStreamingService {
   private final ExchangeConfig config;
   private final MessageParser parser;
   private final ObjectMapper objectMapper;
+  private final CurrencyCache currencyCache;
   private final SubscriptionService subscriptionService;
   private final PingService pingService;
   private final ReconnectPolicy reconnectPolicy;
@@ -52,7 +54,8 @@ public class ExchangeStreamingService {
             subscriptionService,
             pingService,
             config,
-            this::scheduleReconnect
+            this::scheduleReconnect,
+            currencyCache
     );
 
     client.execute(handler, config.spotMarketUrl());

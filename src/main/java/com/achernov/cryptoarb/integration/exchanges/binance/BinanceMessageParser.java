@@ -1,12 +1,14 @@
 package com.achernov.cryptoarb.integration.exchanges.binance;
 
-import com.achernov.cryptoarb.dto.TickerDto;
+import com.achernov.cryptoarb.integration.mapper.TickerDataMapper;
 import com.achernov.cryptoarb.integration.core.strategy.MessageParser;
 import com.achernov.cryptoarb.integration.exchanges.binance.dto.BinanceRawMessage;
+import com.achernov.cryptoarb.integration.util.SymbolNormalizer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -18,7 +20,7 @@ public class BinanceMessageParser implements MessageParser {
   private final ObjectMapper objectMapper;
 
   @Override
-  public TickerDto parse(String payload) throws Exception {
+  public TickerDataMapper parse(String payload) throws Exception {
     BinanceRawMessage msg = objectMapper.readValue(payload, BinanceRawMessage.class);
 
     if (msg.getError() != null) {
@@ -31,15 +33,22 @@ public class BinanceMessageParser implements MessageParser {
       return null;
     }
 
-    if (TICKER_EVENT.equals(msg.getEventType())
-            && msg.getSymbol() != null && msg.getClosePrice() != null) {
-      return new TickerDto(
-              msg.getSymbol(),
+    if (TICKER_EVENT.equals(msg.getEventType()) && isMessageValid(msg)) {
+
+      String standardizedSymbol = SymbolNormalizer.normalize(msg.getSymbol());
+
+      return new TickerDataMapper(
+              standardizedSymbol,
               msg.getClosePrice(),
               System.currentTimeMillis()
       );
     }
 
     return null;
+  }
+
+  private boolean isMessageValid(BinanceRawMessage msg) {
+    return StringUtils.hasText(msg.getSymbol())
+            && StringUtils.hasText(msg.getClosePrice());
   }
 }

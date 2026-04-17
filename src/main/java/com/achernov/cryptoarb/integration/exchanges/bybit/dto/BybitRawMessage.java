@@ -17,7 +17,7 @@ public class BybitRawMessage {
   private Data data;
 
   @Getter
-  public class Data {
+  public static class Data {
     private String symbol;
     private String lastPrice;
   }
