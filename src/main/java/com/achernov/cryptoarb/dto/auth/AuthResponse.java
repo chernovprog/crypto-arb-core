@@ -1,4 +1,4 @@
-package com.achernov.cryptoarb.dto;
+package com.achernov.cryptoarb.dto.auth;
 
 public record AuthResponse(
         Long id,

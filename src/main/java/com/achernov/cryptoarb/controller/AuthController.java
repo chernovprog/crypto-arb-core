@@ -1,8 +1,8 @@
 package com.achernov.cryptoarb.controller;
 
 import com.achernov.cryptoarb.config.properties.JwtProperties;
-import com.achernov.cryptoarb.dto.AuthRequest;
-import com.achernov.cryptoarb.dto.AuthResponse;
+import com.achernov.cryptoarb.dto.auth.AuthRequest;
+import com.achernov.cryptoarb.dto.auth.AuthResponse;
 import com.achernov.cryptoarb.entity.RefreshToken;
 import com.achernov.cryptoarb.entity.User;
 import com.achernov.cryptoarb.exception.InvalidRefreshTokenException;
