@@ -139,7 +139,8 @@ public class AuthController {
 
   @PostMapping("/refresh")
   public ResponseEntity<?> refreshToken(HttpServletRequest request) {
-    Cookie refreshTokenCookie = WebUtils.getCookie(request, properties.refresh().cookieName());
+    String refreshCookieName = properties.refresh().cookieName();
+    Cookie refreshTokenCookie = WebUtils.getCookie(request, refreshCookieName);
 
     if (refreshTokenCookie == null) {
       throw new InvalidRefreshTokenException("Authentication required");
@@ -162,7 +163,7 @@ public class AuthController {
               );
 
               ResponseCookie refreshCookie = cookieService.createResponseCookie(
-                      properties.refresh().cookieName(),
+                      refreshCookieName,
                       newRefreshToken.getToken(),
                       properties.refresh().ttl()
               );
