@@ -12,6 +12,7 @@ import java.time.Instant;
 @Slf4j
 @Service
 @Transactional
+@Profile("prod")
 public class RefreshTokenCleanupService {
 
   private final RefreshTokenRepository refreshTokenRepository;
