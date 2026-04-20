@@ -51,13 +51,14 @@ public class SecurityConfig {
                     .requestMatchers(GET, "/", "/index.html", "/assets/**", "/favicon.ico").permitAll()
 
                     // Private APIs
-                    .requestMatchers(GET, "/api/auth/me").authenticated()
+                    .requestMatchers(GET, "/api/v1/auth/me").authenticated()
 
                     // Public routes
                     .requestMatchers(GET, "/signup", "/login", "/logout").permitAll()
 
                     // Public APIs
-                    .requestMatchers(POST, "/api/auth/**").permitAll()
+                    .requestMatchers(GET, "/api/v1/system/metadata").permitAll()
+                    .requestMatchers(POST, "/api/v1/auth/**").permitAll()
 
                     // WebSockets
                     .requestMatchers("/ws/**").authenticated()
