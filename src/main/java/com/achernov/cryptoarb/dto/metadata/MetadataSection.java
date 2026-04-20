@@ -3,7 +3,7 @@ package com.achernov.cryptoarb.dto.metadata;
 public enum MetadataSection {
   EXCHANGE_SUBSCRIPTIONS("exchange-subscriptions"),
   TRADING_PAIR_SUBSCRIPTIONS("trading-pair-subscriptions"),
-  CURRENCY_SUBSCRIPTIONS("currency_subscriptions"),
+  CURRENCY_SUBSCRIPTIONS("currency-subscriptions"),
   UI_CONFIG("ui-config");
 
   private final String value;
