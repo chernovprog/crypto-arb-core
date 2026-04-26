@@ -79,3 +79,18 @@ app:
         spot-market-url: wss://api.whitebit.com/ws
         topic-destination: /topic/whitebit/prices
         ping-interval: 50s
+  external-services:
+    coinmarketcap:
+      enabled: true
+      api:
+        timeout:
+          read: 10s
+      base-url: https://pro-api.coinmarketcap.com/v1
+      api-key: ${COINMARKETCAP_API_KEY}
+      header-name: X-CMC_PRO_API_KEY
+      quote-currency: USD
+      pagination:
+        start: 1
+        limit: 100
+      endpoints:
+        listings: /cryptocurrency/listings/latest
