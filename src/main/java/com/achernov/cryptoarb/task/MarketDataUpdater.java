@@ -10,11 +10,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class MarketDataUpdater {
+
+  private final AtomicBoolean isDisabledLogged = new AtomicBoolean(false);
 
   private final CoinMarketCapProperties props;
   private final RestClient client;
@@ -22,6 +25,15 @@ public class MarketDataUpdater {
 
   @Scheduled(fixedRate = 1, timeUnit = TimeUnit.MINUTES)
   public void fetchLatestMarketData() {
+    if (!props.enabled()) {
+      if (isDisabledLogged.compareAndSet(false, true)) {
+        log.info("Market data fetching is disabled in configuration. Skipping update.");
+      }
+      return;
+    }
+
+    isDisabledLogged.set(false);
+
     try {
       LatestMarketDataDto data = client.get()
               .uri(uriBuilder -> uriBuilder
