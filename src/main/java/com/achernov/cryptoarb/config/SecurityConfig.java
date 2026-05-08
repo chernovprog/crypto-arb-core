@@ -60,6 +60,9 @@ public class SecurityConfig {
                     .requestMatchers(GET, "/api/v1/system/metadata").permitAll()
                     .requestMatchers(POST, "/api/v1/auth/**").permitAll()
 
+                    // Actuator
+                    .requestMatchers("/actuator/health").permitAll()
+
                     // WebSockets
                     .requestMatchers("/ws/**").authenticated()
 
