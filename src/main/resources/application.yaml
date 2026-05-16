@@ -57,6 +57,15 @@ app:
       ttl: 7d
       cookie-name: refreshToken
       cleanup-cron: "0 0 3 * * ?"
+  datasource:
+    primary:
+      url: ${PRIMARY_DATABASE_URL}
+      username: ${PRIMARY_DATABASE_USERNAME}
+      password: ${PRIMARY_DATABASE_PASSWORD}
+    replica:
+      url: ${REPLICA_DATABASE_URL}
+      username: ${REPLICA_DATABASE_USERNAME}
+      password: ${REPLICA_DATABASE_PASSWORD}
   integrations:
     enabled: true
     base-currency: [BTC, ETH, XRP, BNB, SOL]
