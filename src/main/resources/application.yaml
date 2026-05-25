@@ -63,7 +63,6 @@ app:
     refresh:
       ttl: 7d
       cookie-name: refreshToken
-      cleanup-cron: "0 0 3 * * ?"
   datasource:
     primary:
       url: ${PRIMARY_DATABASE_URL}
