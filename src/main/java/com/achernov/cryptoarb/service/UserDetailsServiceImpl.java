@@ -1,6 +1,6 @@
 package com.achernov.cryptoarb.service;
 
-import com.achernov.cryptoarb.repository.UserRepository;
+import com.achernov.cryptoarb.repository.jpa.UserRepository;
 import lombok.NonNull;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

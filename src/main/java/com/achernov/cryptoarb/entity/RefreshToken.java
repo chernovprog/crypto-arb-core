@@ -1,38 +1,38 @@
 package com.achernov.cryptoarb.entity;
 
-import jakarta.persistence.*;
 import lombok.Data;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.TimeToLive;
+import org.springframework.data.redis.core.index.Indexed;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "refresh_tokens")
 @Data
+@RedisHash("refresh_tokens")
 public class RefreshToken {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
-
-  @Column(unique = true, nullable = false)
   private String token;
 
-  @ManyToOne
-  @JoinColumn(name = "user_id", nullable = false)
-  private User user;
+  @Indexed
+  private Long userId;
 
-  @Column(nullable = false)
+  private String userEmail;
+
   private Instant expiryDate;
 
-  @Column(length = 100)
   private String deviceId;
 
-  @Column(length = 45)
   private String ipAddress;
 
-  @Column
   private String userAgent;
 
-  @Column(updatable = false)
   private Instant createdAt;
+
+  @TimeToLive
+  public long getTimeToLive() {
+    long ttl = expiryDate.getEpochSecond() - Instant.now().getEpochSecond();
+    return ttl > 0 ? ttl : 0;
+  }
 }

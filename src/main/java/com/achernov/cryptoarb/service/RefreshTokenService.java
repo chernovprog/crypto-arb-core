@@ -4,9 +4,11 @@ import com.achernov.cryptoarb.config.properties.JwtProperties;
 import com.achernov.cryptoarb.entity.RefreshToken;
 import com.achernov.cryptoarb.entity.User;
 import com.achernov.cryptoarb.exception.RefreshTokenExpiredException;
-import com.achernov.cryptoarb.repository.RefreshTokenRepository;
+import com.achernov.cryptoarb.repository.redis.RefreshTokenRepository;
+import com.achernov.cryptoarb.repository.jpa.UserRepository;
 import com.achernov.cryptoarb.service.infrastructure.ClientInfoResolver;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -21,13 +23,16 @@ public class RefreshTokenService {
   private final RefreshTokenRepository refreshTokenRepository;
   private final ClientInfoResolver clientInfoResolver;
   private final JwtProperties properties;
+  private final UserRepository userRepository;
 
   public RefreshTokenService(RefreshTokenRepository refreshTokenRepository,
                              ClientInfoResolver clientInfoResolver,
-                             JwtProperties properties) {
+                             JwtProperties properties,
+                             UserRepository userRepository) {
     this.refreshTokenRepository = refreshTokenRepository;
     this.clientInfoResolver = clientInfoResolver;
     this.properties = properties;
+    this.userRepository = userRepository;
   }
 
   public RefreshToken createRefreshToken(User user) {
@@ -37,9 +42,10 @@ public class RefreshTokenService {
     Instant expiration = Instant.now().plus(properties.refresh().ttl());
 
     RefreshToken refreshToken = new RefreshToken();
-    refreshToken.setUser(user);
-    refreshToken.setExpiryDate(expiration);
     refreshToken.setToken(UUID.randomUUID().toString());
+    refreshToken.setUserId(user.getId());
+    refreshToken.setUserEmail(user.getEmail());
+    refreshToken.setExpiryDate(expiration);
     refreshToken.setDeviceId(clientInfoResolver.extractDeviceInfo(request));
     refreshToken.setIpAddress(clientInfoResolver.getClientIp(request));
     refreshToken.setUserAgent(clientInfoResolver.getUserAgent(request));
@@ -48,7 +54,12 @@ public class RefreshTokenService {
   }
 
   public Optional<RefreshToken> findByToken(String token) {
-    return refreshTokenRepository.findByToken(token);
+    return refreshTokenRepository.findById(token);
+  }
+
+  public User getUserByToken(RefreshToken token) {
+    return userRepository.findById(token.getUserId())
+            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
   }
 
   public void deleteToken(RefreshToken token) {

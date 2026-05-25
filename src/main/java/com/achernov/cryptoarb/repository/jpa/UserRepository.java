@@ -1,4 +1,4 @@
-package com.achernov.cryptoarb.repository;
+package com.achernov.cryptoarb.repository.jpa;
 
 import com.achernov.cryptoarb.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
