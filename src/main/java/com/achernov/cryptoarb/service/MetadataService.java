@@ -23,12 +23,12 @@ public class MetadataService {
   private final CurrencyCache currencyCache;
   private final IntegrationProperties properties;
 
-  @Cacheable(value = CacheNames.SYSTEM_METADATA, key = "#sections")
+  @Cacheable(value = CacheNames.SYSTEM_METADATA, key = "@cacheKeyHelper.getMetadataKey(#sections)")
   public AppMetadataDto assembleMetadata(Set<MetadataSection> sections) {
     return buildMetadata(sections);
   }
 
-  @CachePut(value = CacheNames.SYSTEM_METADATA, key = "#sections")
+  @CachePut(value = CacheNames.SYSTEM_METADATA, key = "@cacheKeyHelper.getMetadataKey(#sections)")
   public AppMetadataDto refreshAndPutMetadata(Set<MetadataSection> sections) {
     log.info("Forced cache update for sections: {}", sections);
     return buildMetadata(sections);
