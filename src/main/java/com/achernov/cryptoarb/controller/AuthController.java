@@ -6,9 +6,10 @@ import com.achernov.cryptoarb.dto.auth.AuthResponse;
 import com.achernov.cryptoarb.entity.RefreshToken;
 import com.achernov.cryptoarb.entity.User;
 import com.achernov.cryptoarb.exception.InvalidRefreshTokenException;
-import com.achernov.cryptoarb.repository.UserRepository;
+import com.achernov.cryptoarb.repository.jpa.UserRepository;
 import com.achernov.cryptoarb.security.JwtTokenProvider;
 import com.achernov.cryptoarb.service.RefreshTokenService;
+import com.achernov.cryptoarb.service.TokenBlacklistService;
 import com.achernov.cryptoarb.service.infrastructure.CookieService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +29,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.WebUtils;
 
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 
@@ -36,6 +38,7 @@ import java.util.Optional;
 public class AuthController {
 
   private final AuthenticationManager authenticationManager;
+  private final TokenBlacklistService tokenBlacklistService;
   private final JwtTokenProvider jwtTokenProvider;
   private final RefreshTokenService refreshTokenService;
   private final UserDetailsService userDetailsService;
@@ -44,11 +47,13 @@ public class AuthController {
   private final CookieService cookieService;
   private final JwtProperties properties;
 
-  public AuthController(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider,
-                        RefreshTokenService refreshTokenService, UserDetailsService userDetailsService,
-                        UserRepository userRepository, PasswordEncoder passwordEncoder,
-                        CookieService cookieService, JwtProperties properties) {
+  public AuthController(AuthenticationManager authenticationManager, TokenBlacklistService tokenBlacklistService,
+                        JwtTokenProvider jwtTokenProvider, RefreshTokenService refreshTokenService,
+                        UserDetailsService userDetailsService, UserRepository userRepository,
+                        PasswordEncoder passwordEncoder, CookieService cookieService,
+                        JwtProperties properties) {
     this.authenticationManager = authenticationManager;
+    this.tokenBlacklistService = tokenBlacklistService;
     this.jwtTokenProvider = jwtTokenProvider;
     this.refreshTokenService = refreshTokenService;
     this.userDetailsService = userDetailsService;
@@ -81,8 +86,6 @@ public class AuthController {
     Authentication authentication = new UsernamePasswordAuthenticationToken(
             userDetails, null, userDetails.getAuthorities());
 
-    SecurityContextHolder.getContext().setAuthentication(authentication);
-
     String jwt = jwtTokenProvider.generateToken(authentication.getName());
     RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
@@ -109,8 +112,6 @@ public class AuthController {
     Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(authRequest.email(), authRequest.password())
     );
-
-    SecurityContextHolder.getContext().setAuthentication(authentication);
 
     String jwt = jwtTokenProvider.generateToken(authRequest.email());
 
@@ -151,7 +152,7 @@ public class AuthController {
             .map(refreshToken -> {
               refreshTokenService.deleteToken(refreshToken);
 
-              User user = refreshToken.getUser();
+              User user = refreshTokenService.getUserByToken(refreshToken);
 
               String newJwt = jwtTokenProvider.generateToken(user.getUsername());
               RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
@@ -178,18 +179,24 @@ public class AuthController {
 
   @PostMapping("/logout")
   public ResponseEntity<?> logout(HttpServletRequest request) {
-    Cookie refreshTokenCookie = WebUtils.getCookie(request, properties.refresh().cookieName());
+    Cookie accessTokenCookie = WebUtils.getCookie(request, properties.access().cookieName());
+    if (accessTokenCookie != null && StringUtils.hasText(accessTokenCookie.getValue())) {
+      String token = accessTokenCookie.getValue();
+      try {
+        Date expiration = jwtTokenProvider.extractExpiration(token);
+        tokenBlacklistService.blacklistToken(token, expiration);
+      } catch (Exception ignored) {
+      }
+    }
 
+    Cookie refreshTokenCookie = WebUtils.getCookie(request, properties.refresh().cookieName());
     Optional.ofNullable(refreshTokenCookie)
             .map(Cookie::getValue)
             .flatMap(refreshTokenService::findByToken)
             .ifPresent(refreshTokenService::deleteToken);
 
-    ResponseCookie accessCookie = cookieService
-            .deleteCookie(properties.access().cookieName());
-
-    ResponseCookie refreshCookie = cookieService
-            .deleteCookie(properties.refresh().cookieName());
+    ResponseCookie accessCookie = cookieService.deleteCookie(properties.access().cookieName());
+    ResponseCookie refreshCookie = cookieService.deleteCookie(properties.refresh().cookieName());
 
     SecurityContextHolder.clearContext();
 

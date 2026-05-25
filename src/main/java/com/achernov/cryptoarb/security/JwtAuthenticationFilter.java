@@ -1,6 +1,7 @@
 package com.achernov.cryptoarb.security;
 
 import com.achernov.cryptoarb.config.properties.JwtProperties;
+import com.achernov.cryptoarb.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -26,13 +27,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final JwtTokenProvider jwtTokenProvider;
   private final UserDetailsService userDetailsService;
   private final JwtProperties properties;
+  private final TokenBlacklistService blacklistService;
 
   public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider,
                                  UserDetailsService userDetailsService,
-                                 JwtProperties properties) {
+                                 JwtProperties properties,
+                                 TokenBlacklistService blacklistService) {
     this.jwtTokenProvider = jwtTokenProvider;
     this.userDetailsService = userDetailsService;
     this.properties = properties;
+    this.blacklistService = blacklistService;
   }
 
   @Override
@@ -43,12 +47,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     Cookie jwtCookie = WebUtils.getCookie(request, properties.access().cookieName());
 
     if (jwtCookie != null && StringUtils.hasText(jwtCookie.getValue())) {
+      String token = jwtCookie.getValue();
+
       try {
-        String username = jwtTokenProvider.extractUsername(jwtCookie.getValue());
+        if (blacklistService.isBlacklisted(token)) {
+          log.warn("Attempt to use blacklisted token");
+          filterChain.doFilter(request, response);
+          return;
+        }
+
+        String username = jwtTokenProvider.extractUsername(token);
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
           UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-          if (jwtTokenProvider.validateToken(jwtCookie.getValue(), userDetails)) {
+          if (jwtTokenProvider.validateToken(token, userDetails)) {
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
