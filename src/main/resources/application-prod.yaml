@@ -22,4 +22,4 @@ logging:
 
 app:
   cookie:
-    secure: true
+    secure: false # Temporary until HTTPS is configured
