@@ -12,6 +12,7 @@ public record CoinMarketCapProperties(
         String baseUrl,
         String headerName,
         String quoteCurrency,
+        Duration updateInterval,
         Pagination pagination,
         Endpoints endpoints
 ) {

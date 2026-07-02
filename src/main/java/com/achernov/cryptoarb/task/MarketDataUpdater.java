@@ -9,7 +9,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -23,11 +22,11 @@ public class MarketDataUpdater {
   private final RestClient client;
   private final MarketDataCache cache;
 
-  @Scheduled(fixedRate = 1, timeUnit = TimeUnit.MINUTES)
+  @Scheduled(fixedRateString = "${app.external-services.coinmarketcap.update-interval:1h}")
   public void fetchLatestMarketData() {
     if (!props.enabled()) {
       if (isDisabledLogged.compareAndSet(false, true)) {
-        log.info("Market data fetching is disabled in configuration. Skipping update.");
+        log.debug("Market data fetching is disabled in configuration. Skipping update.");
       }
       return;
     }

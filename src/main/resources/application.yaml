@@ -108,6 +108,7 @@ app:
       api-key: ${COINMARKETCAP_API_KEY}
       header-name: X-CMC_PRO_API_KEY
       quote-currency: USD
+      update-interval: 1h
       pagination:
         start: 1
         limit: 100
